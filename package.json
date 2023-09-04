@@ -1,0 +1,30 @@
+{
+  "name": "ezwatch",
+  "description": "Easy, light and pretty fast filesystem watcher.",
+  "version": "0.0.1",
+  "keywords": [
+    "ezwatch",
+    "watch",
+    "fs",
+    "node",
+    "fswatch",
+    "filesystem",
+    "watcher"
+  ],
+  "license": "MIT",
+  "author": "Timur Sevimli",
+  "email": "svmlitimur@gmail.com",
+  "url": "https://github.com/svmlitimur/ezwatch",
+  "engines": {
+    "node": "18 || 20"
+  },
+  "main": "ezwatch.js",
+  "scripts": {
+    "lint": "eslint . && prettier -c '**/*.js' '**/*.json' '**/*.md'",
+    "fmt": "prettier --write '**/*.js' '**/*.json' '**/*.md'"
+  },
+  "devDependencies": {
+    "eslint": "^8.46.0",
+    "prettier": "^3.0.1"
+  }
+}
