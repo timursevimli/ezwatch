@@ -4,12 +4,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 class Watcher {
-  constructor(options = {}) {
-    const { ignoredPaths = [], ignoredFiles = [], ignoredExts = [] } = options;
+  constructor({ ignore } = {}) {
+    const { paths = [], files = [], exts = [] } = ignore;
     this.watchers = new Map();
-    this.ignoredExts = new Set(ignoredExts);
-    this.ignoredPaths = new Set(ignoredPaths);
-    this.ignoredFiles = new Set(ignoredFiles);
+    this.ignoredExts = new Set(exts);
+    this.ignoredPaths = new Set(paths);
+    this.ignoredFiles = new Set(files);
     this.events = {};
   }
 
@@ -26,54 +26,60 @@ class Watcher {
     else this.events[name] = [listener];
   }
 
-  _change(filePath) {
-    this.emit('change', filePath);
+  checkPath(dir, targetPath, filePath) {
+    fs.readdir(dir, (err, files) => {
+      if (err) return;
+      const paths = files.map((file) => path.join(dir, file));
+      if (paths.includes(targetPath)) this.watchFile(targetPath);
+      if (paths.includes(filePath)) return void this.fileHandler(filePath);
+      if (paths.includes(targetPath)) this.emit('rename', filePath, targetPath);
+      this.emit('unlink', filePath);
+    });
   }
 
-  _rename(filePath) {
-    fs.access(filePath, (err) => {
-      if (err) {
-        this.emit('delete', filePath);
-      } else {
-        this.emit('rename', filePath);
+  watchFile(targetPath) {
+    if (this.watchers.has(targetPath)) return;
+    const watcher = fs.watch(targetPath);
+    watcher.on('error', () => void this.unwatch(targetPath));
+    watcher.on('change', (event, fileName) => {
+      if (event === 'change') this.emit(event, targetPath);
+      if (event === 'rename') {
+        const dir = path.dirname(targetPath);
+        const filePath = path.join(dir, fileName);
+        if (targetPath !== filePath) {
+          this.emit(event, targetPath, filePath);
+        }
+        this.unwatch(targetPath);
         setTimeout(() => {
-          this._watchFile(filePath);
+          this.checkPath(dir, targetPath, filePath);
         }, 0);
       }
-      this.unwatch(filePath);
     });
+    this.watchers.set(targetPath, watcher);
   }
 
-  _watchFile(filePath) {
-    const watcher = fs.watch(filePath, (event) => {
-      if (event === 'rename') this._rename(filePath);
-      if (event === 'change') this._change(filePath);
+  watchDir(dirPath) {
+    console.log({ dirPath });
+    const watcher = fs.watch('./path2', (event, pathName) => {
+      console.log({ event, pathName });
     });
-    watcher.on('error', () => void this.watchers.delete(filePath));
-    this.watchers.set(filePath, watcher);
+    watcher.on('error', (err) => void console.log(err));
   }
 
-  _fileHandler(filePath) {
+  fileHandler(filePath) {
     const { ignoredExts, ignoredFiles } = this;
     const { ext, base, name } = path.parse(filePath);
     if (ignoredExts.has(ext) || ignoredExts.has(ext.slice(1))) return;
     if (ignoredFiles.has(name) || ignoredFiles.has(base)) return;
-    this._watchFile(filePath);
+    this.watchFile(filePath);
   }
 
-  _directoryHandler(dirPath) {
+  directoryHandler(dirPath) {
     const { ignoredPaths } = this;
     const dirName = path.basename(dirPath);
     if (ignoredPaths.has(dirName) || ignoredPaths.has(dirPath)) return;
+    this.watchDir(dirPath);
     this.watch(dirPath);
-  }
-
-  _mainHandler(filePath) {
-    fs.stat(filePath, (err, stats) => {
-      if (err) return;
-      if (stats.isDirectory()) this._directoryHandler(filePath);
-      if (stats.isFile()) this._fileHandler(filePath);
-    });
   }
 
   unwatch(filePath) {
@@ -83,13 +89,14 @@ class Watcher {
     this.watchers.delete(filePath);
   }
 
-  watch(target) {
+  watch(root = process.cwd()) {
     const options = { withFileTypes: true };
-    fs.readdir(target, options, (err, files) => {
+    fs.readdir(root, options, (err, files) => {
       if (err) return this;
       for (const file of files) {
-        const dirPath = path.join(target, file.name);
-        this._mainHandler(dirPath);
+        const dirPath = path.join(root, file.name);
+        if (file.isDirectory()) this.directoryHandler(dirPath);
+        if (file.isFile()) this.fileHandler(dirPath);
       }
     });
     return this;
