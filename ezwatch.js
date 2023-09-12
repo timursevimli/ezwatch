@@ -58,14 +58,6 @@ class Watcher {
     this.watchers.set(targetPath, watcher);
   }
 
-  watchDir(dirPath) {
-    console.log({ dirPath });
-    const watcher = fs.watch('./path2', (event, pathName) => {
-      console.log({ event, pathName });
-    });
-    watcher.on('error', (err) => void console.log(err));
-  }
-
   fileHandler(filePath) {
     const { ignoredExts, ignoredFiles } = this;
     const { ext, base, name } = path.parse(filePath);
@@ -78,7 +70,6 @@ class Watcher {
     const { ignoredPaths } = this;
     const dirName = path.basename(dirPath);
     if (ignoredPaths.has(dirName) || ignoredPaths.has(dirPath)) return;
-    this.watchDir(dirPath);
     this.watch(dirPath);
   }
 
