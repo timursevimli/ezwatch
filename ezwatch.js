@@ -4,6 +4,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { EventEmitter } = require('node:events');
 
+const DEBOUNCE_INTERVAL = 1000;
+
 class Watcher {
   constructor({ ignore = {}, timeout = 0 } = {}) {
     const { paths = [], files = [], exts = [] } = ignore;
@@ -11,7 +13,7 @@ class Watcher {
     this.ignoredExts = new Set(exts);
     this.ignoredPaths = new Set(paths);
     this.ignoredFiles = new Set(files);
-    this.timeout = timeout;
+    this.timeout = timeout + DEBOUNCE_INTERVAL;
     this.timer = null;
     this.queue = new Map();
     this.ee = new EventEmitter();
