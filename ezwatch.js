@@ -62,6 +62,7 @@ class Watcher {
       const target = dirPath.endsWith(path.sep + fileName);
       const filePath = target ? dirPath : path.join(dirPath, fileName);
       if (this._checkIsIgnoredFile(filePath)) return;
+      this._post('*', filePath);
       fs.stat(filePath, (err, stats) => {
         if (err) {
           const keys = [...this.watchers.keys()];
