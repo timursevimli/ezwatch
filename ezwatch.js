@@ -8,10 +8,10 @@ const DEBOUNCE_INTERVAL = 1000;
 
 class Watcher {
   constructor({ ignore = {}, timeout = 0 } = {}) {
-    const { paths = [], files = [], exts = [] } = ignore;
+    const { dirs = [], files = [], exts = [] } = ignore;
     this.watchers = new Map();
     this.ignoredExts = new Set(exts);
-    this.ignoredPaths = new Set(paths);
+    this.ignoredPaths = new Set(dirs);
     this.ignoredFiles = new Set(files);
     this.timeout = timeout + DEBOUNCE_INTERVAL;
     this.timer = null;
@@ -64,8 +64,10 @@ class Watcher {
       if (this._checkIsIgnoredFile(filePath)) return;
       fs.stat(filePath, (err, stats) => {
         if (err) {
-          this.unwatch(filePath);
-          return this._post('unlink', filePath);
+          const keys = [...this.watchers.keys()];
+          const event = keys.includes(filePath) ? 'unlinkDir' : 'unlink';
+          this._post(event, filePath);
+          return void this.unwatch(filePath);
         }
         if (stats.isDirectory()) this.watch(filePath);
         this._post('change', filePath);
