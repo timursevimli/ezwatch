@@ -36,7 +36,9 @@ class Watcher {
 
   _post(event, filePath) {
     if (this.timer) clearTimeout(this.timer);
-    this.queue.set(filePath, event);
+    const events = this.queue.get(filePath);
+    if (events) events.add(event);
+    else this.queue.set(filePath, new Set(event));
     this.timer = setTimeout(() => {
       this.timer = null;
       this._sendQueue();
@@ -48,8 +50,10 @@ class Watcher {
     const queue = [...this.queue.entries()];
     this.queue.clear();
     this.ee.emit('before', queue);
-    for (const [filePath, event] of queue) {
-      this.ee.emit(event, filePath);
+    for (const [filePath, events] of queue) {
+      for (const event of events) {
+        this.ee.emit(event, filePath);
+      }
     }
     this.ee.emit('after', queue);
   }
