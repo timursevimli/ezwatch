@@ -22,16 +22,15 @@ class Watcher {
   _checkIsIgnoredFile(filePath) {
     const { ignoredExts, ignoredFiles } = this;
     const { ext, base, name } = path.parse(filePath);
-    if (ignoredExts.has(ext) || ignoredExts.has(ext.slice(1))) return true;
-    if (ignoredFiles.has(name) || ignoredFiles.has(base)) return true;
-    return false;
+    const extIgnored = ignoredExts.has(ext) || ignoredExts.has(ext.slice(1));
+    const fileIgnored = ignoredFiles.has(name) || ignoredFiles.has(base);
+    return extIgnored || fileIgnored;
   }
 
   _checkIsIgnoredDir(dirPath) {
     const { ignoredPaths } = this;
     const dirName = path.basename(dirPath);
-    if (ignoredPaths.has(dirName) || ignoredPaths.has(dirPath)) return true;
-    return false;
+    return ignoredPaths.has(dirName) || ignoredPaths.has(dirPath);
   }
 
   _post(event, filePath) {
