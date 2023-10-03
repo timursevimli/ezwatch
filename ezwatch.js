@@ -6,8 +6,9 @@ const { EventEmitter } = require('node:events');
 
 const DEBOUNCE_INTERVAL = 1000;
 
-class Watcher {
+class Watcher extends EventEmitter {
   constructor({ ignore = {}, timeout = 0 } = {}) {
+    super();
     const { dirs = [], files = [], exts = [] } = ignore;
     this.watchers = new Map();
     this.ignoredExts = new Set(exts);
@@ -16,7 +17,6 @@ class Watcher {
     this.timeout = timeout + DEBOUNCE_INTERVAL;
     this.timer = null;
     this.queue = new Map();
-    this.ee = new EventEmitter();
   }
 
   _checkIsIgnoredFile(filePath) {
@@ -48,13 +48,13 @@ class Watcher {
     if (this.queue.size === 0) return;
     const queue = [...this.queue.entries()];
     this.queue.clear();
-    this.ee.emit('before', queue);
+    this.emit('before', queue);
     for (const [filePath, events] of queue) {
       for (const event of events) {
-        this.ee.emit(event, filePath);
+        this.emit(event, filePath);
       }
     }
-    this.ee.emit('after', queue);
+    this.emit('after', queue);
   }
 
   _watchDir(dirPath) {
@@ -78,10 +78,6 @@ class Watcher {
       });
     });
     this.watchers.set(dirPath, watcher);
-  }
-
-  on(name, listener) {
-    this.ee.on(name, listener);
   }
 
   unwatch(filePath) {
